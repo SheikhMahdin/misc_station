@@ -573,7 +573,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
 //  Get one free at: https://api.imgbb.com
 //  Sign up → click "Get API key" → copy and paste below
 // ═══════════════════════════════════════════════════════
-const IMGBB_API_KEY = 'YOUR_IMGBB_API_KEY_HERE';
+const IMGBB_API_KEY = 'f8150fd459c0b9ea76bdcae5588f2e0f';
 
 let fb,CU,CP,CR,CRD;
 let unsubM=null,unsubR=null;
@@ -603,7 +603,7 @@ const DEFAULT_ROOMS=[
 // Converts any file or base64 string to an ImgBB-hosted URL.
 // Returns the public image URL or throws on error.
 async function imgbbUpload(file) {
-  if (IMGBB_API_KEY === 'f8150fd459c0b9ea76bdcae5588f2e0f') {
+  if (IMGBB_API_KEY === 'YOUR_IMGBB_API_KEY_HERE') {
     throw new Error('ImgBB API key not set. Open the HTML file and replace YOUR_IMGBB_API_KEY_HERE.');
   }
   const base64 = await new Promise((resolve, reject) => {
@@ -1150,4 +1150,3 @@ function fe(code){return({'auth/user-not-found':'No account found.','auth/wrong-
 </script>
 </body>
 </html>
-
