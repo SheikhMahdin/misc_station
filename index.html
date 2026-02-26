@@ -683,12 +683,24 @@ function initSwipe(){
 function initKeyboard(){
   if(!('visualViewport' in window)) return;
   const vv=window.visualViewport;
+  let lastH=vv.height;
   function onVVChange(){
     const app=g('app');
-    if(app){app.style.height=vv.height+'px';app.style.top=vv.offsetTop+'px';}
+    if(!app) return;
+    app.style.height=vv.height+'px';
+    app.style.top=vv.offsetTop+'px';
+    app.style.position='fixed';
+    app.style.left='0';
+    app.style.right='0';
+    if(Math.abs(vv.height-lastH)>50){
+      lastH=vv.height;
+      const mlist=g('mlist');
+      if(mlist) setTimeout(()=>{mlist.scrollTop=mlist.scrollHeight;},80);
+    }
   }
-  vv.addEventListener('resize',onVVChange);
-  vv.addEventListener('scroll',onVVChange);
+  vv.addEventListener('resize',onVVChange,{passive:true});
+  vv.addEventListener('scroll',onVVChange,{passive:true});
+  onVVChange();
 }
 
 function openSb(){g('sb').classList.add('open');g('sb-backdrop').classList.add('visible');}
@@ -743,6 +755,8 @@ async function launchApp(){
   updatePill();
   startRoomSub();
   await loadUsers();
+  // On mobile, show sidebar first so users see the channel list
+  if(window.innerWidth<=700) openSb();
 }
 function updatePill(){
   const av=g('sb-av');
@@ -803,7 +817,7 @@ async function tryJoin(r){
 async function joinRoom(){
   if(v('jp-pw')!==joinTarget.password){g('jp-err').style.display='block';return;}
   await fb.setDoc(fb.doc(fb.db,'rooms',joinTarget.id,'members',CU.uid),{joinedAt:fb.serverTimestamp()});
-  closeM('m-join');openRoom(joinTarget);joinTarget=null;
+  closeM('m-join');openRoom(joinTarget);closeSb();joinTarget=null;
 }
 
 // ── OPEN ROOM ──
@@ -931,6 +945,7 @@ async function sendMsg(){
   const text=inp.value.trim();
   if(!text&&!pendImgs.length)return;
   inp.value='';inp.style.height='auto';
+  inp.focus(); // keep keyboard open immediately
   const base={uid:CU.uid,alias:CP.alias,color:CP.color,photoURL:CP.photoURL||'',ts:fb.serverTimestamp()};
   const toSend=[...pendImgs];pendImgs=[];
   const strip=g('img-strip');if(strip)strip.innerHTML='';
@@ -943,13 +958,13 @@ async function sendMsg(){
         await fb.addDoc(fb.collection(fb.db,'rooms',CR,'messages'),{...base,imageUrl:url,text:''});
       }catch(e){
         console.error(e);
-        toast(e.message.includes('Client ID')?e.message:'Image upload failed. Check your ImgBB Client ID.');
+        toast(e.message.includes('API key')?e.message:'Image upload failed. Check your ImgBB API key.');
       }
     }
     setUploading(false);
+    inp.focus(); // re-focus after upload completes
   }
   if(text) await fb.addDoc(fb.collection(fb.db,'rooms',CR,'messages'),{...base,text});
-  inp.focus();
 }
 
 function setUploading(val){
@@ -958,6 +973,9 @@ function setUploading(val){
   const btn=g('send-btn');
   if(ind) ind.style.display=val?'flex':'none';
   if(btn) btn.disabled=val;
+  // Keep keyboard open by keeping focus on the textarea
+  const inp=g('ibox');
+  if(inp) inp.focus();
 }
 
 // ── KEY/INPUT ──
