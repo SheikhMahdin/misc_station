@@ -14,8 +14,9 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, si
 import { getFirestore, collection, addDoc, onSnapshot, query, orderBy,
   doc, setDoc, getDoc, getDocs, updateDoc, serverTimestamp, deleteDoc, where }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL }
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+// ── NOTE: Firebase Storage removed — using ImgBB API instead ──
+// No storage import needed
 
 const firebaseConfig = {
   apiKey: "AIzaSyA9bRUWizN9nzYoxiLRw9LoVp8kSfOgqdI",
@@ -29,13 +30,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db   = getFirestore(app);
-const storage = getStorage(app);
-window._fb = { auth, db, storage,
+
+window._fb = { auth, db,
   createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut,
   onAuthStateChanged, GoogleAuthProvider, signInWithPopup,
   collection, addDoc, onSnapshot, query, orderBy,
-  doc, setDoc, getDoc, getDocs, updateDoc, serverTimestamp, deleteDoc, where,
-  ref, uploadBytes, getDownloadURL };
+  doc, setDoc, getDoc, getDocs, updateDoc, serverTimestamp, deleteDoc, where };
 window.dispatchEvent(new Event('firebase-ready'));
 </script>
 
@@ -192,7 +192,6 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
   font-size:14px;flex-shrink:0;-webkit-appearance:none;-moz-appearance:none;appearance:none}
 .ibtn:active{background:var(--s3)}
 
-/* MESSAGES — flex:1 + min-height:0 is critical so it shrinks when keyboard opens */
 .msgs{flex:1;min-height:0;overflow-y:auto;padding:14px 12px;
   display:flex;flex-direction:column;
   -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
@@ -218,7 +217,13 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
 .mention.me-m{background:rgba(255,255,255,.15);color:#fff}
 .sysmsg{text-align:center;font-size:11px;color:var(--mu);font-family:'JetBrains Mono',monospace;padding:5px 0}
 
-/* MESSAGE DELETE — clean action row below bubble */
+/* uploading indicator */
+.upload-progress{display:flex;align-items:center;gap:8px;padding:8px 12px;
+  background:rgba(91,143,255,.1);border:1px solid rgba(91,143,255,.2);
+  border-radius:10px;font-size:12px;color:var(--acc);margin-bottom:8px;
+  font-family:'JetBrains Mono',monospace;animation:blink 1s infinite}
+
+/* MESSAGE DELETE */
 .msg-actions{display:none;align-items:center;gap:4px;margin-top:3px;animation:fi .15s}
 .bubble-wrap:hover .msg-actions{display:flex}
 .bubble-wrap.touch-show .msg-actions{display:flex}
@@ -228,7 +233,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
   -webkit-appearance:none;-moz-appearance:none;appearance:none;transition:all .12s}
 .msg-act-btn:active{background:rgba(255,58,92,.2);color:#ff3a5c}
 
-/* INPUT — KEY FIX: flex-shrink:0 keeps it always visible */
+/* INPUT */
 .inp-wrap{flex-shrink:0;background:var(--s1);border-top:1px solid var(--bd);
   padding:10px 12px;padding-bottom:calc(10px + var(--safe-b));
   position:relative;z-index:10}
@@ -254,6 +259,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
   display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;
   box-shadow:0 2px 12px rgba(91,143,255,.32);-webkit-appearance:none;-moz-appearance:none;appearance:none;transition:opacity .2s,transform .1s}
 .sbtn:active{transform:scale(.93);opacity:.9}
+.sbtn:disabled{opacity:.4;cursor:not-allowed}
 .img-strip{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap}
 .ithumb{position:relative}
 .ithumb img{width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--bd2)}
@@ -288,7 +294,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
   border:1px solid rgba(255,200,91,.2);border-radius:8px;padding:6px 12px;
   font-size:12px;color:var(--warn);font-family:'JetBrains Mono',monospace;margin-bottom:13px}
 
-/* delete confirm modals */
+/* delete confirm */
 .del-icon{font-size:42px;margin-bottom:10px}
 .del-warning{background:rgba(255,58,92,.06);border:1px solid rgba(255,58,92,.18);
   border-radius:10px;padding:12px 14px;margin:12px 0;font-size:13px;color:#ff9aaa;line-height:1.6}
@@ -407,7 +413,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
   </div>
 </div>
 
-<!-- GUIDELINES — only first time -->
+<!-- GUIDELINES -->
 <div class="screen gone" id="s-warn">
   <div class="card">
     <div class="warn-em">⚠️</div>
@@ -506,7 +512,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
   </div>
 </div>
 
-<!-- MODAL: delete message confirm -->
+<!-- MODAL: delete message -->
 <div class="ov gone" id="m-del-msg">
   <div class="modal" style="text-align:center;max-width:360px">
     <div class="del-icon">🗑️</div>
@@ -519,7 +525,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
   </div>
 </div>
 
-<!-- MODAL: delete room confirm -->
+<!-- MODAL: delete room -->
 <div class="ov gone" id="m-del-room">
   <div class="modal" style="text-align:center;max-width:360px">
     <div class="del-icon">⚠️</div>
@@ -562,6 +568,13 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
 <div class="toast" id="toast"></div>
 
 <script>
+// ═══════════════════════════════════════════════════════
+//  ▶▶  PASTE YOUR IMGBB API KEY HERE  ◀◀
+//  Get one free at: https://api.imgbb.com
+//  Sign up → click "Get API key" → copy and paste below
+// ═══════════════════════════════════════════════════════
+const IMGBB_API_KEY = 'YOUR_IMGBB_API_KEY_HERE';
+
 let fb,CU,CP,CR,CRD;
 let unsubM=null,unsubR=null;
 let allUsers={};
@@ -571,6 +584,7 @@ let mentionActive=false,mentionQuery='',mentionIdx=0;
 let lastRooms=[];
 let pendingDeleteMsgId=null;
 let touchStartX=0,touchStartY=0,touchStartTime=0;
+let uploading=false;
 
 const COLORS=['#5b8fff','#ff5b8f','#5bffc0','#ffc85b','#c05bff','#ff8c5b','#5beaff','#ff5b5b'];
 let selColor=COLORS[0],profColor=COLORS[0];
@@ -585,6 +599,31 @@ const DEFAULT_ROOMS=[
   {id:'advice',   name:'Advice Box',    icon:'💭',desc:'Anonymous advice',       type:'public',adminUid:null},
 ];
 
+// ── IMGBB UPLOAD ──────────────────────────────────────────────
+// Converts any file or base64 string to an ImgBB-hosted URL.
+// Returns the public image URL or throws on error.
+async function imgbbUpload(file) {
+  if (IMGBB_API_KEY === 'YOUR_IMGBB_API_KEY_HERE') {
+    throw new Error('ImgBB API key not set. Open the HTML file and replace YOUR_IMGBB_API_KEY_HERE.');
+  }
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+  const formData = new FormData();
+  formData.append('key', IMGBB_API_KEY);
+  formData.append('image', base64);
+  const res = await fetch('https://api.imgbb.com/1/upload', {
+    method: 'POST',
+    body: formData,
+  });
+  const json = await res.json();
+  if (!json.success) throw new Error(json.error?.message || 'ImgBB upload failed');
+  return json.data.url;
+}
+
 window.addEventListener('firebase-ready',()=>{
   fb=window._fb;
   buildColPicker('col-row',c=>selColor=c);
@@ -596,7 +635,6 @@ window.addEventListener('firebase-ready',()=>{
       const snap=await fb.getDoc(fb.doc(fb.db,'users',u.uid));
       if(snap.exists()&&snap.data().alias){
         CP=snap.data();
-        // Skip rules if already accepted before
         const rulesOk=localStorage.getItem(RULES_KEY+'_'+u.uid);
         hideSplash();
         if(rulesOk) launchApp();
@@ -623,40 +661,31 @@ function hideSplash(){
   setTimeout(()=>s.classList.add('gone'),420);
 }
 
-// ── SWIPE — works from anywhere on screen ──
 function initSwipe(){
   document.addEventListener('touchstart',e=>{
     touchStartX=e.touches[0].clientX;
     touchStartY=e.touches[0].clientY;
     touchStartTime=Date.now();
   },{passive:true});
-
   document.addEventListener('touchend',e=>{
     const dx=e.changedTouches[0].clientX-touchStartX;
     const dy=Math.abs(e.changedTouches[0].clientY-touchStartY);
     const dt=Date.now()-touchStartTime;
-    // Must be more horizontal than vertical
     if(dy>Math.abs(dx)*0.75) return;
-    // Fast flick OR slow drag
     const ok=(dt<400&&Math.abs(dx)>35)||(Math.abs(dx)>70);
     if(!ok) return;
-    const sb=g('sb');
-    if(!sb) return;
+    const sb=g('sb');if(!sb)return;
     if(dx>0&&!sb.classList.contains('open')) openSb();
     if(dx<0&&sb.classList.contains('open')) closeSb();
   },{passive:true});
 }
 
-// ── KEYBOARD — keeps input bar visible when keyboard opens ──
 function initKeyboard(){
   if(!('visualViewport' in window)) return;
   const vv=window.visualViewport;
   function onVVChange(){
     const app=g('app');
-    if(app){
-      app.style.height=vv.height+'px';
-      app.style.top=vv.offsetTop+'px';
-    }
+    if(app){app.style.height=vv.height+'px';app.style.top=vv.offsetTop+'px';}
   }
   vv.addEventListener('resize',onVVChange);
   vv.addEventListener('scroll',onVVChange);
@@ -664,11 +693,7 @@ function initKeyboard(){
 
 function openSb(){g('sb').classList.add('open');g('sb-backdrop').classList.add('visible');}
 function closeSb(){g('sb').classList.remove('open');g('sb-backdrop').classList.remove('visible');}
-
-function showS(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.add('gone'));
-  g(id)?.classList.remove('gone');
-}
+function showS(id){document.querySelectorAll('.screen').forEach(s=>s.classList.add('gone'));g(id)?.classList.remove('gone');}
 
 // ── AUTH ──
 async function doLogin(){
@@ -804,14 +829,15 @@ function renderChat(r){
     <div class="msgs" id="mlist"></div>
     <div class="inp-wrap">
       <div class="img-strip" id="img-strip"></div>
+      <div id="upload-indicator" style="display:none" class="upload-progress">⏳ Uploading image to ImgBB…</div>
       <div class="mention-dd" id="mdd"></div>
       <div class="inp-row">
-        <button class="act-btn" onclick="g('file-in').click()">🖼</button>
+        <button class="act-btn" onclick="g('file-in').click()" title="Attach image">🖼</button>
         <input type="file" id="file-in" accept="image/*" multiple onchange="handleImgs(this.files)">
         <textarea class="ibox" id="ibox"
           placeholder="Message #${r.name.toLowerCase()}… (@ mention)"
           rows="1" onkeydown="hKey(event)" oninput="hInput(this)"></textarea>
-        <button class="sbtn" onclick="sendMsg()">➤</button>
+        <button class="sbtn" id="send-btn" onclick="sendMsg()">➤</button>
       </div>
     </div>`;
 }
@@ -870,26 +896,19 @@ function mkBubble(m,isMine){
     b.appendChild(img);
   }
   if(m.text){
-    const sp=document.createElement('span');
-    sp.innerHTML=fmtText(m.text,isMine);
-    b.appendChild(sp);
+    const sp=document.createElement('span');sp.innerHTML=fmtText(m.text,isMine);b.appendChild(sp);
   }
   wrap.appendChild(b);
   if(isMine){
-    // Clean action row with trash icon + label
     const acts=document.createElement('div');acts.className='msg-actions';
-    const delBtn=document.createElement('button');
-    delBtn.className='msg-act-btn';
+    const delBtn=document.createElement('button');delBtn.className='msg-act-btn';
     delBtn.innerHTML='🗑 Delete';
     delBtn.onmousedown=e=>{e.preventDefault();e.stopPropagation();askDeleteMsg(m.id);};
-    acts.appendChild(delBtn);
-    wrap.appendChild(acts);
-    // Long-press on mobile
+    acts.appendChild(delBtn);wrap.appendChild(acts);
     let pt;
     wrap.addEventListener('touchstart',()=>{pt=setTimeout(()=>wrap.classList.add('touch-show'),450);},{passive:true});
     wrap.addEventListener('touchend',()=>clearTimeout(pt),{passive:true});
     wrap.addEventListener('touchmove',()=>clearTimeout(pt),{passive:true});
-    // Tap elsewhere to hide
     wrap.addEventListener('touchstart',e=>{if(wrap.classList.contains('touch-show')&&!e.target.closest('.msg-actions')){wrap.classList.remove('touch-show');}},{passive:true});
   }
   return wrap;
@@ -906,25 +925,39 @@ function fmtText(text,isMine){
   return esc(text).replace(/@(\w+)/g,(_,n)=>`<span class="mention${isMine?' me-m':''}">@${n}</span>`);
 }
 
-// ── SEND ──
+// ── SEND (uses ImgBB for images) ──
 async function sendMsg(){
-  const inp=g('ibox');if(!inp)return;
+  const inp=g('ibox');if(!inp||uploading)return;
   const text=inp.value.trim();
   if(!text&&!pendImgs.length)return;
   inp.value='';inp.style.height='auto';
   const base={uid:CU.uid,alias:CP.alias,color:CP.color,photoURL:CP.photoURL||'',ts:fb.serverTimestamp()};
   const toSend=[...pendImgs];pendImgs=[];
   const strip=g('img-strip');if(strip)strip.innerHTML='';
-  for(const file of toSend){
-    try{
-      const r=fb.ref(fb.storage,`msgs/${CR}/${Date.now()}_${file.name}`);
-      const s=await fb.uploadBytes(r,file);
-      const url=await fb.getDownloadURL(s.ref);
-      await fb.addDoc(fb.collection(fb.db,'rooms',CR,'messages'),{...base,imageUrl:url,text:''});
-    }catch(e){toast('Image upload failed. Check Firebase Storage rules.');}
+
+  if(toSend.length){
+    setUploading(true);
+    for(const file of toSend){
+      try{
+        const url=await imgbbUpload(file);
+        await fb.addDoc(fb.collection(fb.db,'rooms',CR,'messages'),{...base,imageUrl:url,text:''});
+      }catch(e){
+        console.error(e);
+        toast(e.message.includes('Client ID')?e.message:'Image upload failed. Check your ImgBB Client ID.');
+      }
+    }
+    setUploading(false);
   }
   if(text) await fb.addDoc(fb.collection(fb.db,'rooms',CR,'messages'),{...base,text});
   inp.focus();
+}
+
+function setUploading(val){
+  uploading=val;
+  const ind=g('upload-indicator');
+  const btn=g('send-btn');
+  if(ind) ind.style.display=val?'flex':'none';
+  if(btn) btn.disabled=val;
 }
 
 // ── KEY/INPUT ──
@@ -973,10 +1006,12 @@ function selMention(){
 }
 function closeMDD(){mentionActive=false;const b=g('mdd');if(b)b.style.display='none';}
 
-// ── IMAGES ──
+// ── IMAGES preview ──
 function handleImgs(files){
   Array.from(files).forEach(file=>{
     if(!file.type.startsWith('image/'))return;
+    // ImgBB free: max 20MB per image
+    if(file.size>20*1024*1024){toast('Image too large. Max 20MB per image.');return;}
     pendImgs.push(file);
     const fr=new FileReader();
     fr.onload=e=>{
@@ -1047,7 +1082,7 @@ async function executeDeleteRoom(){
   openSb();
 }
 
-// ── PROFILE ──
+// ── PROFILE (avatar uses ImgBB) ──
 function openProfile(){
   const av=g('pav');
   if(CP.photoURL){av.innerHTML=`<img src="${CP.photoURL}" alt="">`;av.style.background='';}
@@ -1061,19 +1096,23 @@ function openProfile(){
   buildColPicker('p-colors',c=>profColor=c,CP.color);
   openM('m-profile');
 }
+
 async function uploadAvatar(file){
   if(!file)return;
   toast('Uploading photo…');
   try{
-    const r=fb.ref(fb.storage,`avatars/${CU.uid}`);
-    const s=await fb.uploadBytes(r,file);
-    const url=await fb.getDownloadURL(s.ref);
+    const url=await imgbbUpload(file);       // ← ImgBB instead of Firebase Storage
     CP.photoURL=url;
-    const av=g('pav');av.innerHTML=`<img src="${url}" alt="">`;
+    await fb.setDoc(fb.doc(fb.db,'users',CU.uid),CP);  // ← persist to Firestore
+    const av=g('pav');av.innerHTML=`<img src="${url}" alt="">`;av.style.background='';
     updatePill();
     toast('Photo updated! ✓');
-  }catch(e){toast('Upload failed. Check Storage rules.');}
+  }catch(e){
+    console.error(e);
+    toast(e.message.includes('Client ID')?e.message:'Upload failed. Check your ImgBB Client ID.');
+  }
 }
+
 async function saveProfile(){
   const alias=v('p-alias');
   if(!/^[\w]{3,20}$/.test(alias)) return showErr('p-alias-err','3–20 chars, letters/numbers/_ only.');
