@@ -9,28 +9,4 @@
     <priority>1.0</priority>
   </url>
 
-  <!-- About / Info Page -->
-  <url>
-    <loc>https://misc-station.vercel.app/about</loc>
-    <lastmod>2026-02-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Features / Chat Info Page -->
-  <url>
-    <loc>https://misc-station.vercel.app/features</loc>
-    <lastmod>2026-02-26</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-
-  <!-- Disclaimer Page -->
-  <url>
-    <loc>https://misc-station.vercel.app/disclaimer</loc>
-    <lastmod>2026-02-26</lastmod>
-    <changefreq>yearly</changefreq>
-    <priority>0.5</priority>
-  </url>
-
 </urlset>
