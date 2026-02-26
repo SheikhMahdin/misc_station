@@ -444,7 +444,12 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
       </div>
     </div>
     <div class="sb-search"><input id="room-q" placeholder="🔍  Search rooms…" oninput="filterRooms(this.value)"></div>
-    <div class="sb-sec">Channels <button onclick="openCreate()" title="New Room">＋</button></div>
+    <div class="sb-sec">Channels
+      <div style="display:flex;gap:4px">
+        <button onclick="openM('m-people')" title="People &amp; DMs" style="font-size:14px">👥</button>
+        <button onclick="openCreate()" title="New Room">＋</button>
+      </div>
+    </div>
     <div class="rlist" id="rlist"></div>
     <div class="sb-foot"><div class="sb-btn" onclick="doLogout()">↩ &nbsp;Sign out</div></div>
   </div>
@@ -491,6 +496,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
       <button class="btn ghost" onclick="closeM('m-join')">Cancel</button>
       <button class="btn" onclick="joinRoom()">Join Room</button>
     </div>
+    <div class="lnk" style="margin-top:12px">No password? <a onclick="openJoinReq()">Request to join →</a></div>
   </div>
 </div>
 
@@ -503,6 +509,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
     <div class="field"><label>Description</label><input id="rs-d" type="text"></div>
     <div class="field"><label>Password (blank = public)</label><input id="rs-pw" type="text" placeholder="New password or leave blank"></div>
     <div class="err" id="rs-err"></div>
+    <div id="rs-reqs-wrap" style="display:none"><div class="sb-sec" style="padding:0;margin:14px 0 6px">Join Requests</div><div id="rs-reqs"></div></div>
     <div class="mbtns">
       <button class="btn red sm" onclick="confirmDeleteRoom()">🗑 Delete Room</button>
       <div style="flex:1"></div>
@@ -559,6 +566,66 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
       <button class="btn ghost" onclick="closeM('m-profile')">Cancel</button>
       <button class="btn" onclick="saveProfile()">Save Changes</button>
     </div>
+  </div>
+</div>
+
+
+<!-- MODAL: crop profile photo -->
+<div class="ov gone" id="m-crop">
+  <div class="modal" style="max-width:380px">
+    <h3>✂️ Crop Profile Photo</h3>
+    <p class="sub2">Drag to reposition · Pinch or scroll to zoom</p>
+    <div class="crop-wrap" id="crop-wrap">
+      <canvas id="crop-canvas"></canvas>
+      <div class="crop-overlay"><div class="crop-circle"></div></div>
+    </div>
+    <p class="crop-hint">Move &amp; zoom so your photo fits the circle</p>
+    <div class="mbtns">
+      <button class="btn ghost" onclick="closeM('m-crop')">Cancel</button>
+      <button class="btn" onclick="cropAndUpload()">Use Photo ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: join request -->
+<div class="ov gone" id="m-join-req">
+  <div class="modal">
+    <h3>📨 Request to Join</h3>
+    <p class="sub2" id="jr-room-name">Send the admin a request to join this room.</p>
+    <div class="field"><label>Message to admin (optional)</label>
+      <input id="req-msg" type="text" placeholder="Hi! I'd like to join because…" maxlength="100"
+        autocomplete="off">
+    </div>
+    <div class="err" id="req-err"></div>
+    <div class="mbtns">
+      <button class="btn ghost" onclick="closeM('m-join-req')">Cancel</button>
+      <button class="btn" onclick="sendJoinRequest()">Send Request 📨</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: view user profile -->
+<div class="ov gone" id="m-view-prof">
+  <div class="modal" style="text-align:center;max-width:320px">
+    <div class="view-prof-av" id="vp-av" onclick="vpZoom()"></div>
+    <h3 id="vp-name" style="margin-bottom:4px"></h3>
+    <div id="vp-badge" class="uname-badge" style="margin-bottom:16px"></div>
+    <button class="btn" onclick="startDMFromProfile()">💬 Send Message</button>
+    <button class="btn ghost" style="margin-top:8px" onclick="closeM('m-view-prof')">Close</button>
+  </div>
+</div>
+
+<!-- MODAL: people search + DM -->
+<div class="ov gone" id="m-people">
+  <div class="modal">
+    <h3>👥 People</h3>
+    <p class="sub2">Search members and start a direct message.</p>
+    <div class="field" style="margin-bottom:10px">
+      <input id="people-q" type="text" placeholder="Search by username…"
+        oninput="filterPeople(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off">
+    </div>
+    <div id="people-list" style="max-height:280px;overflow-y:auto"></div>
+    <div class="mbtns"><button class="btn ghost" onclick="closeM('m-people')">Close</button></div>
   </div>
 </div>
 
@@ -882,9 +949,10 @@ function renderMsgs(msgs){
     if(newGrp){
       const mg=document.createElement('div');mg.className='mg';
       const row=document.createElement('div');row.className='mrow'+(isMine?' me':'');
-      const av=document.createElement('div');av.className='av';
+      const av=document.createElement('div');av.className='av';av.style.cursor='pointer';
       if(m.photoURL)av.innerHTML=`<img src="${m.photoURL}" alt="">`;
       else{av.style.background=m.color;av.textContent=(m.alias||'?')[0].toUpperCase();}
+      if(!isMine) av.onclick=()=>viewUserProfile(m.uid,m.alias,m.color,m.photoURL||'');
       const side=document.createElement('div');
       side.style.cssText='flex:1;display:flex;flex-direction:column;min-width:0'+(isMine?';align-items:flex-end':'');
       const meta=document.createElement('div');meta.className='mmeta';
@@ -1065,7 +1133,41 @@ async function createRoom(){
 function openSettings(){
   g('rs-rname').textContent=`#${CRD.name}`;g('rs-n').value=CRD.name;
   g('rs-d').value=CRD.desc||'';g('rs-pw').value='';
+  loadJoinRequests();
   openM('m-settings');
+}
+
+async function loadJoinRequests(){
+  const wrap=g('rs-reqs-wrap'),box=g('rs-reqs');
+  if(!wrap||!box||!CR)return;
+  const snap=await fb.getDocs(fb.query(fb.collection(fb.db,'rooms',CR,'requests'),fb.where('status','==','pending')));
+  if(snap.empty){wrap.style.display='none';return;}
+  wrap.style.display='block';box.innerHTML='';
+  snap.forEach(d=>{
+    const req=d.data();
+    const div=document.createElement('div');div.className='req-item';
+    const av=document.createElement('div');av.className='av';av.style.cssText='width:30px;height:30px;font-size:12px;flex-shrink:0';
+    if(req.photoURL)av.innerHTML=`<img src="${req.photoURL}" alt="">`;
+    else{av.style.background=req.color||'var(--acc)';av.textContent=(req.alias||'?')[0].toUpperCase();}
+    const info=document.createElement('div');info.className='req-info';
+    info.innerHTML=`<div class="req-name" style="color:${req.color||'var(--acc)'}">${esc(req.alias)}</div>${req.message?`<div class="req-msg">"${esc(req.message)}"</div>`:''}`;
+    const btns=document.createElement('div');btns.className='req-btns';
+    const yes=document.createElement('button');yes.className='req-yes';yes.textContent='✓ Accept';
+    yes.onclick=async()=>{
+      await fb.setDoc(fb.doc(fb.db,'rooms',CR,'members',d.id),{joinedAt:fb.serverTimestamp()});
+      await fb.updateDoc(fb.doc(fb.db,'rooms',CR,'requests',d.id),{status:'accepted'});
+      div.remove();if(!box.children.length)wrap.style.display='none';
+      toast(`${req.alias} added to room!`);
+    };
+    const no=document.createElement('button');no.className='req-no';no.textContent='✕';
+    no.onclick=async()=>{
+      await fb.updateDoc(fb.doc(fb.db,'rooms',CR,'requests',d.id),{status:'rejected'});
+      div.remove();if(!box.children.length)wrap.style.display='none';
+    };
+    btns.appendChild(yes);btns.appendChild(no);
+    div.appendChild(av);div.appendChild(info);div.appendChild(btns);
+    box.appendChild(div);
+  });
 }
 async function saveRoomSettings(){
   const name=v('rs-n');if(!name)return showErr('rs-err','Name cannot be empty.');
@@ -1117,18 +1219,126 @@ function openProfile(){
 
 async function uploadAvatar(file){
   if(!file)return;
-  toast('Uploading photo…');
-  try{
-    const url=await imgbbUpload(file);       // ← ImgBB instead of Firebase Storage
-    CP.photoURL=url;
-    await fb.setDoc(fb.doc(fb.db,'users',CU.uid),CP);  // ← persist to Firestore
-    const av=g('pav');av.innerHTML=`<img src="${url}" alt="">`;av.style.background='';
-    updatePill();
-    toast('Photo updated! ✓');
-  }catch(e){
-    console.error(e);
-    toast(e.message.includes('Client ID')?e.message:'Upload failed. Check your ImgBB Client ID.');
-  }
+  // Open crop modal first
+  openCropModal(file);
+}
+
+// ── CROP MODAL ──
+let cropImg=null,cropFile=null,cropX=0,cropY=0,cropScale=1,cropDragging=false,cropLX=0,cropLY=0;
+let cropPinchDist=0;
+
+function openCropModal(file){
+  cropFile=file;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    cropImg=new Image();
+    cropImg.onload=()=>{
+      cropX=0;cropY=0;cropScale=1;
+      initCropCanvas();
+      closeM('m-profile');
+      openM('m-crop');
+    };
+    cropImg.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function initCropCanvas(){
+  const wrap=g('crop-wrap');const canvas=g('crop-canvas');
+  if(!wrap||!canvas||!cropImg)return;
+  canvas.width=wrap.offsetWidth||320;
+  canvas.height=260;
+  // fit image to canvas initially
+  const sx=canvas.width/cropImg.width, sy=canvas.height/cropImg.height;
+  cropScale=Math.max(sx,sy);
+  cropX=(canvas.width-cropImg.width*cropScale)/2;
+  cropY=(canvas.height-cropImg.height*cropScale)/2;
+  drawCrop();
+  // Mouse events
+  wrap.onmousedown=e=>{cropDragging=true;cropLX=e.clientX;cropLY=e.clientY;wrap.classList.add('dragging');};
+  window.onmousemove=e=>{if(!cropDragging)return;cropX+=e.clientX-cropLX;cropY+=e.clientY-cropLY;cropLX=e.clientX;cropLY=e.clientY;clampCrop();drawCrop();};
+  window.onmouseup=()=>{cropDragging=false;wrap.classList.remove('dragging');};
+  wrap.onwheel=e=>{e.preventDefault();const f=e.deltaY<0?1.1:.91;zoomCrop(f,canvas.width/2,canvas.height/2);};
+  // Touch events
+  wrap.ontouchstart=e=>{
+    if(e.touches.length===1){cropDragging=true;cropLX=e.touches[0].clientX;cropLY=e.touches[0].clientY;}
+    if(e.touches.length===2){cropPinchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);}
+    e.preventDefault();
+  };
+  wrap.ontouchmove=e=>{
+    if(e.touches.length===1&&cropDragging){
+      cropX+=e.touches[0].clientX-cropLX;cropY+=e.touches[0].clientY-cropLY;
+      cropLX=e.touches[0].clientX;cropLY=e.touches[0].clientY;
+      clampCrop();drawCrop();
+    }
+    if(e.touches.length===2){
+      const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      const cx=(e.touches[0].clientX+e.touches[1].clientX)/2;
+      const cy=(e.touches[0].clientY+e.touches[1].clientY)/2;
+      const rect=wrap.getBoundingClientRect();
+      zoomCrop(d/cropPinchDist,cx-rect.left,cy-rect.top);
+      cropPinchDist=d;
+    }
+    e.preventDefault();
+  },{passive:false};
+  wrap.ontouchend=()=>{cropDragging=false;};
+}
+
+function zoomCrop(factor,cx,cy){
+  const ns=Math.min(Math.max(cropScale*factor,.5),8);
+  const f=ns/cropScale;
+  cropX=cx-(cx-cropX)*f;cropY=cy-(cy-cropY)*f;
+  cropScale=ns;clampCrop();drawCrop();
+}
+
+function clampCrop(){
+  const canvas=g('crop-canvas');if(!canvas||!cropImg)return;
+  const w=cropImg.width*cropScale,h=cropImg.height*cropScale;
+  // Keep at least the circle (200px) covered
+  const r=100;
+  const cx=canvas.width/2,cy=canvas.height/2;
+  if(cropX>cx-r) cropX=cx-r;
+  if(cropX+w<cx+r) cropX=cx+r-w;
+  if(cropY>cy-r) cropY=cy-r;
+  if(cropY+h<cy+r) cropY=cy+r-h;
+}
+
+function drawCrop(){
+  const canvas=g('crop-canvas');if(!canvas||!cropImg)return;
+  const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(cropImg,cropX,cropY,cropImg.width*cropScale,cropImg.height*cropScale);
+}
+
+async function cropAndUpload(){
+  const canvas=g('crop-canvas');if(!canvas||!cropImg)return;
+  // Render circle crop to a 300x300 canvas
+  const out=document.createElement('canvas');out.width=300;out.height=300;
+  const ctx=out.getContext('2d');
+  ctx.beginPath();ctx.arc(150,150,150,0,Math.PI*2);ctx.clip();
+  const cw=canvas.width,ch=canvas.height;
+  const r=100,cx=cw/2,cy=ch/2;
+  // Source rect in canvas coords → source in image coords
+  const srcX=(cx-r-cropX)/cropScale, srcY=(cy-r-cropY)/cropScale;
+  const srcW=200/cropScale, srcH=200/cropScale;
+  ctx.drawImage(cropImg,srcX,srcY,srcW,srcH,0,0,300,300);
+  out.toBlob(async blob=>{
+    closeM('m-crop');
+    openM('m-profile');
+    toast('Uploading photo…');
+    try{
+      const file=new File([blob],'avatar.jpg',{type:'image/jpeg'});
+      const url=await imgbbUpload(file);
+      CP.photoURL=url;
+      await fb.setDoc(fb.doc(fb.db,'users',CU.uid),CP);
+      const av=g('pav');av.innerHTML=`<img src="${url}" alt="">`;av.style.background='';
+      updatePill();
+      toast('Photo updated! ✓');
+    }catch(e){
+      console.error(e);
+      toast('Upload failed. Check your ImgBB API key.');
+    }
+  },'image/jpeg',.92);
 }
 
 async function saveProfile(){
@@ -1153,6 +1363,102 @@ function buildColPicker(containerId,onChange,active){
     c.appendChild(d);
   });
 }
+
+
+// ── JOIN REQUEST ──
+function openJoinReq(){
+  closeM('m-join');
+  if(!joinTarget)return;
+  g('jr-room-name').textContent=`Requesting to join: ${joinTarget.name}`;
+  g('req-msg').value='';
+  g('req-err').style.display='none';
+  openM('m-join-req');
+}
+async function sendJoinRequest(){
+  if(!joinTarget)return;
+  const msg=v('req-msg');
+  // Check if already requested
+  const existing=await fb.getDoc(fb.doc(fb.db,'rooms',joinTarget.id,'requests',CU.uid));
+  if(existing.exists()&&existing.data().status==='pending'){
+    g('req-err').textContent='You already have a pending request for this room.';
+    g('req-err').style.display='block';return;
+  }
+  await fb.setDoc(fb.doc(fb.db,'rooms',joinTarget.id,'requests',CU.uid),{
+    uid:CU.uid,alias:CP.alias,color:CP.color,photoURL:CP.photoURL||'',
+    message:msg,status:'pending',ts:fb.serverTimestamp()
+  });
+  closeM('m-join-req');joinTarget=null;
+  toast('Request sent! Wait for admin approval.');
+}
+
+// ── VIEW USER PROFILE ──
+let vpTarget=null;
+function viewUserProfile(uid,alias,color,photoURL){
+  vpTarget={uid,alias,color,photoURL};
+  const av=g('vp-av');
+  if(photoURL){av.innerHTML=`<img src="${photoURL}" alt="">`;av.style.background='';}
+  else{av.innerHTML='';av.textContent=alias[0].toUpperCase();av.style.background=color;}
+  g('vp-name').textContent=alias;
+  g('vp-badge').textContent='@'+alias;
+  g('vp-badge').style.color=color;
+  openM('m-view-prof');
+}
+function vpZoom(){
+  if(vpTarget&&vpTarget.photoURL){g('lb-img').src=vpTarget.photoURL;g('lb').classList.remove('gone');}
+}
+function startDMFromProfile(){
+  if(!vpTarget)return;
+  closeM('m-view-prof');
+  openDM(vpTarget);
+}
+
+// ── DIRECT MESSAGES ──
+async function openDM(user){
+  // DM room id = sorted uid pair
+  const dmId='dm_'+[CU.uid,user.uid].sort().join('_');
+  // Check/create the DM room doc
+  const ref=fb.doc(fb.db,'rooms',dmId);
+  const snap=await fb.getDoc(ref);
+  if(!snap.exists()){
+    await fb.setDoc(ref,{
+      name:`${CP.alias} & ${user.alias}`,
+      icon:'💬',desc:'Direct message',
+      type:'dm',adminUid:null,
+      members:[CU.uid,user.uid],
+      createdAt:fb.serverTimestamp()
+    });
+  }
+  const roomData=snap.exists()?{id:dmId,...snap.data()}:{id:dmId,name:`${CP.alias} & ${user.alias}`,icon:'💬',desc:'Direct message',type:'dm',adminUid:null};
+  openRoom(roomData);
+  closeSb();
+}
+
+// ── PEOPLE SEARCH ──
+function filterPeople(q){
+  const list=g('people-list');if(!list)return;
+  const users=Object.values(allUsers).filter(u=>u.uid!==CU.uid&&(!q||u.alias.toLowerCase().includes(q.toLowerCase())));
+  list.innerHTML='';
+  if(!users.length){list.innerHTML='<div class="req-empty">No users found.</div>';return;}
+  users.forEach(u=>{
+    const card=document.createElement('div');card.className='user-card';
+    const av=document.createElement('div');av.className='av';av.style.cssText='width:36px;height:36px;font-size:14px;flex-shrink:0';
+    if(u.photoURL)av.innerHTML=`<img src="${u.photoURL}" alt="">`;
+    else{av.style.background=u.color;av.textContent=u.alias[0].toUpperCase();}
+    const info=document.createElement('div');info.className='user-card-info';
+    info.innerHTML=`<div class="user-card-name" style="color:${u.color}">${esc(u.alias)}</div><div class="user-card-sub">@${esc(u.alias)}</div>`;
+    const btn=document.createElement('button');btn.className='dm-btn';btn.textContent='Message';
+    btn.onclick=e=>{e.stopPropagation();closeM('m-people');openDM(u);};
+    card.appendChild(av);card.appendChild(info);card.appendChild(btn);
+    card.onclick=()=>{closeM('m-people');viewUserProfile(u.uid,u.alias,u.color,u.photoURL||'');};
+    list.appendChild(card);
+  });
+}
+// Populate on open
+const _origOpenM=openM;
+window.openM=function(id){
+  _origOpenM(id);
+  if(id==='m-people'){g('people-q').value='';filterPeople('');}
+};
 
 function openM(id){g(id)?.classList.remove('gone');}
 function closeM(id){g(id)?.classList.add('gone');}
