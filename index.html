@@ -207,50 +207,50 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
 .bubble-wrap{display:inline-flex;flex-direction:column;position:relative}
 .mrow.me .bubble-wrap{align-items:flex-end}
 
-/* Three-dot button — shown inline ABOVE bubble on hover/long-press */
-.msg-menu-btn{
-  width:28px;height:28px;border-radius:8px;
-  border:1px solid var(--bd2);background:var(--s2);
-  color:var(--mu2);cursor:pointer;
-  display:none;align-items:center;justify-content:center;
-  font-size:13px;font-weight:700;line-height:1;
-  box-shadow:0 2px 8px rgba(0,0,0,.3);
-  flex-shrink:0;align-self:flex-start;margin-top:2px;
-  -webkit-appearance:none;appearance:none;
-  transition:background .12s,color .12s}
-.msg-menu-btn:hover,.msg-menu-btn:active{background:var(--s3);color:var(--acc)}
+/* ── Simple message action button ── */
+.bubble-wrap{display:inline-flex;flex-direction:column;position:relative}
+.mrow.me .bubble-wrap{align-items:flex-end}
 
-/* Bubble row: flex row containing [btn] [bubble-wrap] for others, [bubble-wrap] [btn] for me */
-.bubble-row{display:flex;align-items:flex-start;gap:5px}
+/* The ⋯ dot shown only when msg-group is hovered */
+.msg-dot{
+  font-size:18px;color:var(--mu);cursor:pointer;
+  padding:0 4px;line-height:1;
+  opacity:0;transition:opacity .15s;
+  flex-shrink:0;align-self:center;
+  user-select:none;-webkit-user-select:none}
+.mg:hover .msg-dot{opacity:1}
+.msg-dot.open{opacity:1;color:var(--acc)}
+
+/* The popup that appears after clicking dot */
+.msg-popup{
+  position:absolute;z-index:50;
+  background:var(--s1);border:1px solid var(--bd2);
+  border-radius:14px;padding:6px;
+  box-shadow:0 8px 32px rgba(0,0,0,.55);
+  display:none;flex-direction:column;gap:2px;min-width:150px;
+  animation:popIn .15s cubic-bezier(.16,1,.3,1)}
+.msg-popup.visible{display:flex}
+/* position: below bubble, aligned to sender side */
+.mrow:not(.me) .msg-popup{left:0;top:calc(100% + 4px)}
+.mrow.me .msg-popup{right:0;top:calc(100% + 4px)}
+
+/* emoji row inside popup */
+.popup-emojis{display:flex;gap:2px;padding:4px 6px 6px;border-bottom:1px solid var(--bd)}
+.pop-em{font-size:20px;cursor:pointer;padding:3px 4px;border-radius:8px;transition:background .1s;line-height:1}
+.pop-em:hover{background:var(--s2)}
+
+.pop-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;
+  cursor:pointer;font-size:13px;transition:background .1s}
+.pop-item:hover{background:var(--s2)}
+.pop-item.danger{color:#ff7a7a}
+.pop-item.danger:hover{background:rgba(255,58,92,.1)}
+
+/* bubble-row: just a flex for dot + bubble-wrap together */
+.bubble-row{display:flex;align-items:center;gap:4px;position:relative}
 .mrow.me .bubble-row{flex-direction:row-reverse}
 
-.bubble-row:hover .msg-menu-btn,
-.bubble-wrap.show-actions .msg-menu-btn{display:flex}
-
-/* ── Reaction popup (emoji picker bar) ── */
-.react-popup{
-  background:var(--s2);border:1px solid var(--bd2);
-  border-radius:30px;padding:5px 8px;
-  display:none;align-items:center;gap:4px;
-  box-shadow:0 8px 28px rgba(0,0,0,.5);
-  z-index:20;animation:popIn .18s cubic-bezier(.16,1,.3,1);
-  position:absolute;bottom:calc(100% + 6px);left:0}
-.mrow.me .react-popup{left:auto;right:0}
+/* reactions display under bubble */
 @keyframes popIn{from{opacity:0;transform:scale(.8) translateY(4px)}to{opacity:1;transform:none}}
-.react-popup.visible{display:flex}
-.react-emoji{font-size:22px;cursor:pointer;padding:3px 5px;border-radius:50%;
-  transition:transform .12s,background .12s;line-height:1}
-.react-emoji:hover{transform:scale(1.35);background:var(--s3)}
-
-/* ── Context menu (reply/delete) ── */
-.msg-ctx-menu{
-  position:absolute;top:calc(100% + 4px);left:0;
-  background:var(--s1);border:1px solid var(--bd2);
-  border-radius:12px;padding:4px;
-  display:none;flex-direction:column;gap:2px;
-  box-shadow:0 8px 28px rgba(0,0,0,.55);
-  z-index:30;min-width:140px;animation:popIn .15s cubic-bezier(.16,1,.3,1)}
-.mrow.me .msg-ctx-menu{left:auto;right:0}
 .msg-ctx-menu.visible{display:flex}
 .ctx-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:8px;
   cursor:pointer;font-size:13px;font-weight:500;transition:background .1s;white-space:nowrap}
@@ -795,6 +795,10 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
       <div class="err" id="p-alias-err"></div>
     </div>
     <div class="field" style="text-align:left"><label>Change Color</label><div class="col-row" id="p-colors"></div></div>
+    <div class="field" style="text-align:left">
+      <label>Caption / Bio</label>
+      <input id="p-caption" type="text" maxlength="60" placeholder="e.g. Future Engineer 🚀" autocomplete="off">
+    </div>
     <div class="mbtns">
       <button class="btn ghost" onclick="closeM('m-profile')">Cancel</button>
       <button class="btn" onclick="saveProfile()">Save Changes</button>
@@ -840,7 +844,8 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
   <div class="modal" style="text-align:center;max-width:320px">
     <div class="view-prof-av" id="vp-av" onclick="vpZoom()"></div>
     <h3 id="vp-name" style="margin-bottom:4px"></h3>
-    <div id="vp-badge" class="uname-badge" style="margin-bottom:16px"></div>
+    <div id="vp-badge" class="uname-badge" style="margin-bottom:8px"></div>
+    <p id="vp-caption" style="font-size:13px;color:var(--mu2);margin-bottom:16px;font-style:italic"></p>
     <button class="btn" onclick="startDMFromProfile()">💬 Send Message</button>
     <button class="btn ghost" style="margin-top:8px" onclick="closeM('m-view-prof')">Close</button>
   </div>
@@ -906,7 +911,6 @@ let mentionActive=false, mentionQuery='', mentionIdx=0;
 let lastRooms=[];
 let pendingDeleteMsgId=null;
 let replyTo=null; // {id, alias, text}
-let activeCtxWrap=null; // currently open context menu
 let uploading=false;
 let touchStartX=0, touchStartY=0, touchStartTime=0;
 
@@ -941,19 +945,35 @@ async function imgbbUpload(file) {
   return json.data.url;
 }
 
-// For videos: catbox.moe — free, no account, no API key, supports up to 200MB
-// Files are permanent. Works via simple form POST.
+// Video upload: uses file.io (free, CORS-friendly, no account needed, files expire after 1 download by default — use &expires=1y)
+// For bigger videos we try transfer.sh as fallback
 async function videoUpload(file) {
-  if(file.size > 200*1024*1024) throw new Error('Video too large. Max 200MB.');
-  const fd=new FormData();
-  fd.append('reqtype','fileupload');
-  fd.append('userhash','');   // anonymous upload
-  fd.append('fileToUpload', file);
-  const resp=await fetch('https://catbox.moe/user/api.php', {method:'POST', body:fd});
-  if(!resp.ok) throw new Error('Video upload failed (catbox.moe). Try a smaller file.');
-  const url=(await resp.text()).trim();
-  if(!url.startsWith('http')) throw new Error('Video upload error: '+url);
-  return url;
+  if(file.size > 100*1024*1024) throw new Error('Video too large. Max 100MB for free upload.');
+  // Try file.io first
+  try {
+    const fd=new FormData();
+    fd.append('file', file);
+    fd.append('expires','1y');
+    fd.append('maxDownloads','1000');
+    const resp=await fetch('https://file.io/?expires=1y', {method:'POST', body:fd});
+    const json=await resp.json();
+    if(json.success && json.link) return json.link;
+    throw new Error('file.io failed');
+  } catch(e1) {
+    // Fallback: transfer.sh
+    try {
+      const resp=await fetch(`https://transfer.sh/${encodeURIComponent(file.name)}`, {
+        method:'PUT', body:file,
+        headers:{'Max-Days':'30'}
+      });
+      if(!resp.ok) throw new Error('transfer.sh failed');
+      const url=(await resp.text()).trim();
+      if(url.startsWith('http')) return url;
+      throw new Error('Bad URL');
+    } catch(e2) {
+      throw new Error('Video upload failed. Both file.io and transfer.sh failed. Try a smaller file or different network.');
+    }
+  }
 }
 
 window.addEventListener('firebase-ready',()=>{
@@ -985,7 +1005,7 @@ window.addEventListener('firebase-ready',()=>{
   initKeyboard();
   // Close any open ctx menu on outside click
   document.addEventListener('click',()=>{
-    if(activeCtxWrap){closeCtxMenu(activeCtxWrap);activeCtxWrap=null;}
+    if(activePopup){closePopup(activePopup,activeDot);}
   });
 });
 
@@ -1201,16 +1221,28 @@ function openRoom(r){
 
 function renderChat(r){
   const isAdmin=r.adminUid===CU?.uid;
+  const isDM=r.type==='dm';
+  // For DM: find the other user's data for header display
+  let dmOtherUser=null;
+  if(isDM&&r.members){
+    const otherId=r.members.find(id=>id!==CU.uid);
+    dmOtherUser=allUsers[otherId]||null;
+  }
+  const headerIcon=isDM&&dmOtherUser
+    ? (dmOtherUser.photoURL
+        ? `<div class="ch-ico" style="cursor:pointer;overflow:hidden;border-radius:50%" onclick='viewUserProfile("${dmOtherUser.uid}","${dmOtherUser.alias}","${dmOtherUser.color}","${dmOtherUser.photoURL||''}")'><img src="${dmOtherUser.photoURL}" style="width:100%;height:100%;object-fit:cover" alt=""></div>`
+        : `<div class="ch-ico" style="cursor:pointer;background:${dmOtherUser.color};border-radius:50%;font-size:16px;font-weight:700;color:#fff" onclick='viewUserProfile("${dmOtherUser.uid}","${dmOtherUser.alias}","${dmOtherUser.color}","")'>${dmOtherUser.alias[0].toUpperCase()}</div>`)
+    : `<div class="ch-ico" style="background:${rbg(r.id)}">${r.icon||'#'}</div>`;
   g('chat').innerHTML=`
     <div class="ch-head">
       <button class="ham" onclick="openSb()">☰</button>
-      <div class="ch-ico" style="background:${rbg(r.id)}">${r.icon||'#'}</div>
+      ${headerIcon}
       <div class="ch-info">
         <h2>${esc(r.name)} ${r.type==='private'?'🔒':r.type==='invite'?'🔗':''}</h2>
-        <p><span class="online"></span>${esc(r.desc||'')} · anonymous</p>
+        <p><span class="online"></span>${isDM?'Direct message':'anonymous · '+esc(r.desc||'')}</p>
       </div>
       <div class="ch-acts">
-        <button class="ibtn" onclick="openM('m-room-members')" title="Members">👥</button>
+        ${!isDM?`<button class="ibtn" onclick="openM('m-room-members')" title="Members">👥</button>`:''}
         ${isAdmin?`<button class="ibtn" onclick="openSettings()">⚙️</button>`:''}
       </div>
     </div>
@@ -1359,6 +1391,7 @@ function renderMsgs(msgs){
       if(m.photoURL)av.innerHTML=`<img src="${m.photoURL}" alt="">`;
       else{av.style.background=m.color;av.textContent=(m.alias||'?')[0].toUpperCase();}
       if(!isMine) av.onclick=()=>viewUserProfile(m.uid,m.alias,m.color,m.photoURL||'');
+      else if(CRD&&CRD.type==='dm') av.onclick=()=>openProfile();
       const side=document.createElement('div');
       side.style.cssText='flex:1;display:flex;flex-direction:column;min-width:0'+(isMine?';align-items:flex-end':'');
       const meta=document.createElement('div');meta.className='mmeta';
@@ -1379,17 +1412,22 @@ function renderMsgs(msgs){
 }
 
 function mkBubble(m,isMine,rowEl){
-  const wrap=document.createElement('div');wrap.className='bubble-wrap';
+  // outerWrap: column flex (reply-quote + bubble-row + reactions)
+  const outerWrap=document.createElement('div');
+  outerWrap.style.cssText='display:inline-flex;flex-direction:column;'+(isMine?'align-items:flex-end':'align-items:flex-start');
 
   // Reply quote
   if(m.replyTo){
     const q=document.createElement('div');q.className='msg-reply-quote';
-    q.innerHTML=`<div class="reply-q-name" style="color:${esc(m.replyTo.color||'#8a9bb8')}">${esc(m.replyTo.alias)}</div>
-      <div class="reply-q-text">${esc(m.replyTo.text||'📎 media')}</div>`;
-    wrap.appendChild(q);
+    q.innerHTML=`<div class="reply-q-name" style="color:${esc(m.replyTo.color||'#8a9bb8')}">${esc(m.replyTo.alias)}</div><div class="reply-q-text">${esc(m.replyTo.text||'media')}</div>`;
+    outerWrap.appendChild(q);
   }
 
+  // bubble-row
+  const bubbleRow=document.createElement('div');bubbleRow.className='bubble-row';
+
   // Bubble
+  const wrap=document.createElement('div');wrap.className='bubble-wrap';
   const b=document.createElement('div');b.className='bubble'+(isMine?' me':'');
   if(m.videoUrl){
     const vid=document.createElement('video');vid.src=m.videoUrl;vid.controls=true;
@@ -1407,89 +1445,61 @@ function mkBubble(m,isMine,rowEl){
   }
   wrap.appendChild(b);
 
-  // Reactions display
+  // Dot button
+  const dot=document.createElement('span');dot.className='msg-dot';dot.textContent='•••';
+  dot.onclick=e=>{e.stopPropagation();toggleMsgPopup(popup,dot);};
+
+  // Unified popup (emojis + reply + delete)
+  const popup=document.createElement('div');popup.className='msg-popup';
+  const emojiRow=document.createElement('div');emojiRow.className='popup-emojis';
+  QUICK_REACTS.forEach(em=>{
+    const s=document.createElement('span');s.className='pop-em';s.textContent=em;
+    s.onclick=e=>{e.stopPropagation();toggleReact(m.id,em);closePopup(popup,dot);};
+    emojiRow.appendChild(s);
+  });
+  popup.appendChild(emojiRow);
+  const replyItem=document.createElement('div');replyItem.className='pop-item';
+  replyItem.innerHTML='\u21A9\uFE0F  Reply';
+  replyItem.onclick=e=>{e.stopPropagation();setReply(m);closePopup(popup,dot);};
+  popup.appendChild(replyItem);
+  if(isMine){
+    const delItem=document.createElement('div');delItem.className='pop-item danger';
+    delItem.innerHTML='\uD83D\uDDD1\uFE0F  Delete';
+    delItem.onclick=e=>{e.stopPropagation();askDeleteMsg(m.id);closePopup(popup,dot);};
+    popup.appendChild(delItem);
+  }
+  wrap.appendChild(popup);
+
+  if(!isMine){bubbleRow.appendChild(dot);bubbleRow.appendChild(wrap);}
+  else{bubbleRow.appendChild(wrap);bubbleRow.appendChild(dot);}
+  outerWrap.appendChild(bubbleRow);
+
   const reactDiv=document.createElement('div');reactDiv.className='bubble-reactions';
   renderReactions(reactDiv,m,isMine);
-
-  // ── THREE-DOT MENU BUTTON (inline beside bubble) ──
-  const menuBtn=document.createElement('button');menuBtn.className='msg-menu-btn';menuBtn.textContent='⋯';
-  menuBtn.title='Message options';
-  menuBtn.onmousedown=e=>{e.preventDefault();e.stopPropagation();toggleMsgMenu(wrap,m,isMine);};
-
-  // outerWrap: column flex, holds [bubbleRow, reactDiv]
-  const outerWrap=document.createElement('div');
-  outerWrap.style.cssText='display:inline-flex;flex-direction:column;'+(isMine?'align-items:flex-end':'');
-
-  // bubbleRow: puts button next to bubble
-  const bubbleRow=document.createElement('div');bubbleRow.className='bubble-row';
-  if(!isMine){bubbleRow.appendChild(menuBtn);bubbleRow.appendChild(wrap);}
-  else{bubbleRow.appendChild(wrap);bubbleRow.appendChild(menuBtn);}
-  outerWrap.appendChild(bubbleRow);
   outerWrap.appendChild(reactDiv);
 
-  // ── REACT POPUP (emoji bar) ──
-  const reactPop=document.createElement('div');reactPop.className='react-popup';
-  QUICK_REACTS.forEach(em=>{
-    const s=document.createElement('span');s.className='react-emoji';s.textContent=em;
-    s.onmousedown=e=>{e.preventDefault();e.stopPropagation();toggleReact(m.id,em);closeCtxMenu(wrap);};
-    s.onclick=e=>{e.stopPropagation();};
-    reactPop.appendChild(s);
-  });
-  wrap.appendChild(reactPop);
-
-  // ── CONTEXT MENU ──
-  const ctxMenu=document.createElement('div');ctxMenu.className='msg-ctx-menu';
-
-  // Reply
-  const replyItem=document.createElement('div');replyItem.className='ctx-item';
-  replyItem.innerHTML='<span class="ctx-ico">↩️</span> Reply';
-  replyItem.onmousedown=e=>{e.preventDefault();e.stopPropagation();setReply(m);closeCtxMenu(wrap);};
-  ctxMenu.appendChild(replyItem);
-
-  // Delete (own messages only)
-  if(isMine){
-    const delItem=document.createElement('div');delItem.className='ctx-item danger';
-    delItem.innerHTML='<span class="ctx-ico">🗑️</span> Delete';
-    delItem.onmousedown=e=>{e.preventDefault();e.stopPropagation();askDeleteMsg(m.id);closeCtxMenu(wrap);};
-    ctxMenu.appendChild(delItem);
-  }
-  wrap.appendChild(ctxMenu);
-
-  // Touch long-press to show menu
-  let touchTimer;
-  outerWrap.addEventListener('touchstart',e=>{
-    touchTimer=setTimeout(()=>{
-      e.stopPropagation();
-      toggleMsgMenu(wrap,m,isMine);
-    },450);
-  },{passive:true});
-  outerWrap.addEventListener('touchend',()=>clearTimeout(touchTimer),{passive:true});
-  outerWrap.addEventListener('touchmove',()=>clearTimeout(touchTimer),{passive:true});
+  // Long press on mobile
+  let tt;
+  outerWrap.addEventListener('touchstart',()=>{tt=setTimeout(()=>toggleMsgPopup(popup,dot),400);},{passive:true});
+  outerWrap.addEventListener('touchend',()=>clearTimeout(tt),{passive:true});
+  outerWrap.addEventListener('touchmove',()=>clearTimeout(tt),{passive:true});
 
   return outerWrap;
 }
 
-function toggleMsgMenu(wrap,m,isMine){
-  // Close any other open menu
-  if(activeCtxWrap&&activeCtxWrap!==wrap){closeCtxMenu(activeCtxWrap);}
-  const isOpen=wrap.classList.contains('show-actions');
-  closeCtxMenu(wrap);
-  if(!isOpen){
-    wrap.classList.add('show-actions');
-    const reactPop=wrap.querySelector('.react-popup');
-    const ctxMenu=wrap.querySelector('.msg-ctx-menu');
-    if(reactPop) reactPop.classList.add('visible');
-    if(ctxMenu) ctxMenu.classList.add('visible');
-    activeCtxWrap=wrap;
-  }
+let activePopup=null,activeDot=null;
+function toggleMsgPopup(popup,dot){
+  if(activePopup&&activePopup!==popup)closePopup(activePopup,activeDot);
+  const isOpen=popup.classList.contains('visible');
+  closePopup(popup,dot);
+  if(!isOpen){popup.classList.add('visible');dot.classList.add('open');activePopup=popup;activeDot=dot;}
 }
-function closeCtxMenu(wrap){
-  wrap.classList.remove('show-actions');
-  const reactPop=wrap.querySelector('.react-popup');
-  const ctxMenu=wrap.querySelector('.msg-ctx-menu');
-  if(reactPop) reactPop.classList.remove('visible');
-  if(ctxMenu) ctxMenu.classList.remove('visible');
+function closePopup(popup,dot){
+  popup?.classList.remove('visible');dot?.classList.remove('open');
+  if(activePopup===popup){activePopup=null;activeDot=null;}
 }
+function toggleMsgMenu(){}
+function closeCtxMenu(){}
 
 function openLightbox(src, isVideo){
   const img=g('lb-img'), vid=g('lb-vid');
@@ -1853,9 +1863,10 @@ function openProfile(){
   else{av.innerHTML='';av.textContent=CP.alias[0].toUpperCase();av.style.background=CP.color;}
   g('pname').textContent=CP.alias;
   g('p-uname-badge').textContent='@'+CP.alias;
-  g('pemail').textContent=CP.email||'';
+  g('pemail').textContent=CP.caption?`"${CP.caption}"`:CP.email||'';
   g('p-alias').value=CP.alias;
   g('p-alias-err').style.display='none';
+  if(g('p-caption')) g('p-caption').value=CP.caption||'';
   profColor=CP.color;
   buildColPicker('p-colors',c=>profColor=c,CP.color);
   openM('m-profile');
@@ -1967,6 +1978,7 @@ async function saveProfile(){
     if(!snap.empty&&snap.docs[0].id!==CU.uid) return showErr('p-alias-err','Username already taken.');
   }
   CP.alias=alias; CP.color=profColor;
+  CP.caption=(g('p-caption')?.value||'').trim().slice(0,60);
   await fb.setDoc(fb.doc(fb.db,'users',CU.uid),CP);
   allUsers[CU.uid]=CP; updatePill(); closeM('m-profile'); toast('Profile updated! ✓');
 }
@@ -2015,6 +2027,10 @@ function viewUserProfile(uid,alias,color,photoURL){
   g('vp-name').textContent=alias;
   g('vp-badge').textContent='@'+alias;
   g('vp-badge').style.color=color;
+  // Load caption from allUsers
+  const udata=allUsers[uid]||{};
+  const capEl=g('vp-caption');
+  if(capEl) capEl.textContent=udata.caption||'';
   openM('m-view-prof');
 }
 function vpZoom(){if(vpTarget?.photoURL){openLightbox(vpTarget.photoURL,false);}}
