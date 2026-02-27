@@ -207,35 +207,35 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
 .bubble-wrap{display:inline-flex;flex-direction:column;position:relative}
 .mrow.me .bubble-wrap{align-items:flex-end}
 
-/* Three-dot button that appears on hover/long-press */
+/* Three-dot button — shown inline ABOVE bubble on hover/long-press */
 .msg-menu-btn{
-  position:absolute;top:50%;transform:translateY(-50%);
-  width:28px;height:28px;border-radius:50%;
+  width:28px;height:28px;border-radius:8px;
   border:1px solid var(--bd2);background:var(--s2);
   color:var(--mu2);cursor:pointer;
   display:none;align-items:center;justify-content:center;
-  font-size:16px;font-weight:700;line-height:1;
-  box-shadow:0 2px 8px rgba(0,0,0,.4);
-  z-index:10;-webkit-appearance:none;appearance:none;
+  font-size:13px;font-weight:700;line-height:1;
+  box-shadow:0 2px 8px rgba(0,0,0,.3);
+  flex-shrink:0;align-self:flex-start;margin-top:2px;
+  -webkit-appearance:none;appearance:none;
   transition:background .12s,color .12s}
 .msg-menu-btn:hover,.msg-menu-btn:active{background:var(--s3);color:var(--acc)}
-/* Position for others: right side; for me: left side */
-.mrow:not(.me) .bubble-wrap .msg-menu-btn{right:-36px}
-.mrow.me .bubble-wrap .msg-menu-btn{left:-36px}
 
-.bubble-wrap:hover .msg-menu-btn,
+/* Bubble row: flex row containing [btn] [bubble-wrap] for others, [bubble-wrap] [btn] for me */
+.bubble-row{display:flex;align-items:flex-start;gap:5px}
+.mrow.me .bubble-row{flex-direction:row-reverse}
+
+.bubble-row:hover .msg-menu-btn,
 .bubble-wrap.show-actions .msg-menu-btn{display:flex}
 
 /* ── Reaction popup (emoji picker bar) ── */
 .react-popup{
-  position:absolute;bottom:calc(100% + 6px);
   background:var(--s2);border:1px solid var(--bd2);
   border-radius:30px;padding:5px 8px;
   display:none;align-items:center;gap:4px;
   box-shadow:0 8px 28px rgba(0,0,0,.5);
-  z-index:20;animation:popIn .18s cubic-bezier(.16,1,.3,1)}
-.mrow:not(.me) .react-popup{left:0}
-.mrow.me .react-popup{right:0}
+  z-index:20;animation:popIn .18s cubic-bezier(.16,1,.3,1);
+  position:absolute;bottom:calc(100% + 6px);left:0}
+.mrow.me .react-popup{left:auto;right:0}
 @keyframes popIn{from{opacity:0;transform:scale(.8) translateY(4px)}to{opacity:1;transform:none}}
 .react-popup.visible{display:flex}
 .react-emoji{font-size:22px;cursor:pointer;padding:3px 5px;border-radius:50%;
@@ -244,14 +244,13 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
 
 /* ── Context menu (reply/delete) ── */
 .msg-ctx-menu{
-  position:absolute;top:calc(100% + 4px);
+  position:absolute;top:calc(100% + 4px);left:0;
   background:var(--s1);border:1px solid var(--bd2);
   border-radius:12px;padding:4px;
   display:none;flex-direction:column;gap:2px;
   box-shadow:0 8px 28px rgba(0,0,0,.55);
   z-index:30;min-width:140px;animation:popIn .15s cubic-bezier(.16,1,.3,1)}
-.mrow:not(.me) .msg-ctx-menu{left:0}
-.mrow.me .msg-ctx-menu{right:0}
+.mrow.me .msg-ctx-menu{left:auto;right:0}
 .msg-ctx-menu.visible{display:flex}
 .ctx-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:8px;
   cursor:pointer;font-size:13px;font-weight:500;transition:background .1s;white-space:nowrap}
@@ -453,6 +452,16 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
   display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:700}
 .view-prof-av img{width:100%;height:100%;object-fit:cover}
 
+/* invite notification styles */
+.notif-dot{position:absolute;top:-3px;right:-3px;width:9px;height:9px;border-radius:50%;
+  background:#ff3a5c;border:2px solid var(--s1);display:none}
+.notif-dot.visible{display:block}
+.inv-notif-item{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:10px;
+  background:var(--s2);border:1px solid rgba(91,143,255,.25);margin-bottom:8px}
+.inv-notif-head{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+.inv-notif-room{color:var(--acc);font-family:'JetBrains Mono',monospace;font-size:12px;margin-left:auto}
+.inv-notif-btns{display:flex;gap:7px}
+
 /* req items */
 .req-item{display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;background:var(--s2);border:1px solid var(--bd);margin-bottom:6px}
 .req-info{flex:1;min-width:0}
@@ -603,7 +612,13 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
       </div>
     </div>
     <div class="rlist" id="rlist"></div>
-    <div class="sb-foot"><div class="sb-btn" onclick="doLogout()">↩ &nbsp;Sign out</div></div>
+    <div class="sb-foot">
+      <div class="sb-btn" style="position:relative" onclick="openMyInvites()">
+        🔔 &nbsp;Invitations
+        <span class="notif-dot" id="inv-dot"></span>
+      </div>
+      <div class="sb-btn" onclick="doLogout()">↩ &nbsp;Sign out</div>
+    </div>
   </div>
   <div class="chat" id="chat">
     <div class="empty" id="empty-state">
@@ -715,6 +730,8 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
         <button class="copy-btn" onclick="copyInviteCode()">📋 Copy</button>
       </div>
       <button class="btn ghost sm" style="width:100%;margin-top:4px" onclick="genNewCode()">🔄 Generate New Code</button>
+      <div style="margin:12px 0 6px;font-size:12px;font-weight:700;color:var(--mu2)">— or invite a person directly —</div>
+      <button class="btn sm" style="width:100%;margin-top:0" onclick="closeM('m-settings');openSendInvite()">👤 Send Invite to Person 📨</button>
       <div style="margin-top:12px">
         <div style="font-size:12px;color:var(--mu2);margin-bottom:8px">Or share as full link:</div>
         <div class="invite-code-box" style="border-style:dashed">
@@ -843,7 +860,31 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);font-s
   </div>
 </div>
 
-<!-- lightbox -->
+<!-- MODAL: send group invite to a person -->
+<div class="ov gone" id="m-send-invite">
+  <div class="modal">
+    <h3>📨 Invite to Group</h3>
+    <p class="sub2" id="send-inv-roomname">Invite someone to join this room.</p>
+    <div class="field" style="margin-bottom:10px">
+      <label>Search person to invite</label>
+      <input id="send-inv-q" type="text" placeholder="Search by username…"
+        oninput="filterInvitePeople(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off">
+    </div>
+    <div id="send-inv-list" style="max-height:260px;overflow-y:auto"></div>
+    <div class="err" id="send-inv-err"></div>
+    <div class="mbtns"><button class="btn ghost" onclick="closeM('m-send-invite')">Close</button></div>
+  </div>
+</div>
+
+<!-- MODAL: my invitations (inbox) -->
+<div class="ov gone" id="m-my-invites">
+  <div class="modal">
+    <h3>📬 Group Invitations</h3>
+    <p class="sub2">Invitations sent to you to join rooms.</p>
+    <div id="my-invites-list" style="max-height:320px;overflow-y:auto"></div>
+    <div class="mbtns"><button class="btn ghost" onclick="closeM('m-my-invites')">Close</button></div>
+  </div>
+</div>
 <div class="lb gone" id="lb" onclick="this.classList.add('gone')">
   <img id="lb-img" alt="" style="display:none">
   <video id="lb-vid" controls style="display:none"></video>
@@ -900,16 +941,18 @@ async function imgbbUpload(file) {
   return json.data.url;
 }
 
-// For videos we use a different free host: 0x0.st (anonymous, free, no account needed)
-// Videos up to 512MB, files kept for ~1 year
+// For videos: catbox.moe — free, no account, no API key, supports up to 200MB
+// Files are permanent. Works via simple form POST.
 async function videoUpload(file) {
   if(file.size > 200*1024*1024) throw new Error('Video too large. Max 200MB.');
   const fd=new FormData();
-  fd.append('file', file);
-  const resp=await fetch('https://0x0.st', {method:'POST', body:fd});
-  if(!resp.ok) throw new Error('Video upload failed.');
+  fd.append('reqtype','fileupload');
+  fd.append('userhash','');   // anonymous upload
+  fd.append('fileToUpload', file);
+  const resp=await fetch('https://catbox.moe/user/api.php', {method:'POST', body:fd});
+  if(!resp.ok) throw new Error('Video upload failed (catbox.moe). Try a smaller file.');
   const url=(await resp.text()).trim();
-  if(!url.startsWith('http')) throw new Error('Video upload returned unexpected response.');
+  if(!url.startsWith('http')) throw new Error('Video upload error: '+url);
   return url;
 }
 
@@ -1043,6 +1086,7 @@ async function launchApp(){
   updatePill();
   startRoomSub();
   await loadUsers();
+  subscribeInvites();
   if(window.innerWidth<=700) openSb();
 }
 function updatePill(){
@@ -1078,6 +1122,8 @@ function renderRooms(rooms){
     // For DMs: only show if current user is a member
     if(r.type==='dm'){
       if(!r.members||!r.members.includes(CU.uid)) return;
+      // Show the other person's name
+      r={...r, name: r.nameFor?.[CU.uid]||r.name};
     }
     const div=document.createElement('div');
     div.className='ri'+(CR===r.id?' active':'');
@@ -1202,7 +1248,10 @@ function ensureRoomMembersModal(){
       <h3>👥 Room Members</h3>
       <p class="sub2" id="room-members-count"></p>
       <div class="members-list" id="room-members-list"></div>
-      <div class="mbtns"><button class="btn ghost" onclick="closeM('m-room-members')">Close</button></div>
+      <div class="mbtns">
+        <button class="btn red sm" id="leave-room-btn" onclick="leaveRoom()" style="display:none">🚪 Leave Group</button>
+        <button class="btn ghost" onclick="closeM('m-room-members')">Close</button>
+      </div>
     </div>`;
   div.addEventListener('click',e=>{if(e.target===div)div.classList.add('gone');});
   document.body.appendChild(div);
@@ -1230,7 +1279,13 @@ window._openRoomMembers=async function(){
     }
   }
   g('room-members-count').textContent=`${members.length} member${members.length!==1?'s':''}`;
-  list.innerHTML='';
+  // Show leave button only for non-admins in group rooms (not DMs)
+  const leaveBtn=g('leave-room-btn');
+  if(leaveBtn){
+    const isAdmin=CRD&&CRD.adminUid===CU.uid;
+    const isDM=CRD&&CRD.type==='dm';
+    leaveBtn.style.display=(!isAdmin&&!isDM)?'':'none';
+  }
   if(!members.length){list.innerHTML='<div style="color:var(--mu);text-align:center;padding:16px">No members found.</div>';return;}
   members.forEach(u=>{
     if(!u) return;
@@ -1355,13 +1410,22 @@ function mkBubble(m,isMine,rowEl){
   // Reactions display
   const reactDiv=document.createElement('div');reactDiv.className='bubble-reactions';
   renderReactions(reactDiv,m,isMine);
-  wrap.appendChild(reactDiv);
 
-  // ── THREE-DOT MENU BUTTON ──
-  const menuBtn=document.createElement('button');menuBtn.className='msg-menu-btn';menuBtn.textContent='•••';
+  // ── THREE-DOT MENU BUTTON (inline beside bubble) ──
+  const menuBtn=document.createElement('button');menuBtn.className='msg-menu-btn';menuBtn.textContent='⋯';
   menuBtn.title='Message options';
-  menuBtn.onmousedown=e=>{e.preventDefault();e.stopPropagation();toggleMsgMenu(wrap,m,isMine,rowEl);};
-  wrap.appendChild(menuBtn);
+  menuBtn.onmousedown=e=>{e.preventDefault();e.stopPropagation();toggleMsgMenu(wrap,m,isMine);};
+
+  // outerWrap: column flex, holds [bubbleRow, reactDiv]
+  const outerWrap=document.createElement('div');
+  outerWrap.style.cssText='display:inline-flex;flex-direction:column;'+(isMine?'align-items:flex-end':'');
+
+  // bubbleRow: puts button next to bubble
+  const bubbleRow=document.createElement('div');bubbleRow.className='bubble-row';
+  if(!isMine){bubbleRow.appendChild(menuBtn);bubbleRow.appendChild(wrap);}
+  else{bubbleRow.appendChild(wrap);bubbleRow.appendChild(menuBtn);}
+  outerWrap.appendChild(bubbleRow);
+  outerWrap.appendChild(reactDiv);
 
   // ── REACT POPUP (emoji bar) ──
   const reactPop=document.createElement('div');reactPop.className='react-popup';
@@ -1393,19 +1457,19 @@ function mkBubble(m,isMine,rowEl){
 
   // Touch long-press to show menu
   let touchTimer;
-  wrap.addEventListener('touchstart',e=>{
+  outerWrap.addEventListener('touchstart',e=>{
     touchTimer=setTimeout(()=>{
       e.stopPropagation();
-      toggleMsgMenu(wrap,m,isMine,rowEl);
+      toggleMsgMenu(wrap,m,isMine);
     },450);
   },{passive:true});
-  wrap.addEventListener('touchend',()=>clearTimeout(touchTimer),{passive:true});
-  wrap.addEventListener('touchmove',()=>clearTimeout(touchTimer),{passive:true});
+  outerWrap.addEventListener('touchend',()=>clearTimeout(touchTimer),{passive:true});
+  outerWrap.addEventListener('touchmove',()=>clearTimeout(touchTimer),{passive:true});
 
-  return wrap;
+  return outerWrap;
 }
 
-function toggleMsgMenu(wrap,m,isMine,rowEl){
+function toggleMsgMenu(wrap,m,isMine){
   // Close any other open menu
   if(activeCtxWrap&&activeCtxWrap!==wrap){closeCtxMenu(activeCtxWrap);}
   const isOpen=wrap.classList.contains('show-actions');
@@ -1965,15 +2029,18 @@ async function openDM(user){
   const snap=await fb.getDoc(ref);
   if(!snap.exists()){
     await fb.setDoc(ref,{
-      name:`${CP.alias} ↔ ${user.alias}`,
+      name:user.alias,           // store other person's alias as the room name
+      nameFor:{[CU.uid]:user.alias,[user.uid]:CP.alias}, // each sees the other's name
       icon:'💬',desc:'Direct message',
       type:'dm',adminUid:null,
       members:[CU.uid,user.uid],
       createdAt:fb.serverTimestamp()
     });
   }
-  const roomData=snap.exists()?{id:dmId,...snap.data()}:{id:dmId,name:`${CP.alias} ↔ ${user.alias}`,icon:'💬',desc:'Direct message',type:'dm',adminUid:null,members:[CU.uid,user.uid]};
-  openRoom(roomData);
+  const data=snap.exists()?{id:dmId,...snap.data()}:{id:dmId,name:user.alias,nameFor:{[CU.uid]:user.alias,[user.uid]:CP.alias},icon:'💬',desc:'Direct message',type:'dm',adminUid:null,members:[CU.uid,user.uid]};
+  // Show the other person's name for current user
+  const displayName=data.nameFor?.[CU.uid]||user.alias;
+  openRoom({...data,name:displayName});
   closeSb();
 }
 
@@ -2024,7 +2091,122 @@ window.addEventListener('load',()=>{
   }
 });
 
-// ── UTILS ──
+// ── LEAVE GROUP ──
+async function leaveRoom(){
+  if(!CR||!CRD) return;
+  if(!confirm(`Leave "${CRD.name}"? You'll need a new invite to rejoin.`)) return;
+  closeM('m-room-members');
+  await fb.deleteDoc(fb.doc(fb.db,'rooms',CR,'members',CU.uid));
+  if(unsubM){unsubM();unsubM=null;}
+  CR=null; CRD=null;
+  document.querySelectorAll('.ri').forEach(x=>x.classList.remove('active'));
+  g('chat').innerHTML=`<div style="display:flex;flex-direction:column;height:100dvh;background:var(--bg)">
+    <div class="ch-head"><button class="ham" onclick="openSb()">☰</button></div>
+    <div class="empty"><div class="em">👋</div><p>You left the room.<br>Select another channel.</p></div>
+  </div>`;
+  toast('You left the room.');
+  openSb();
+}
+
+// ── SEND GROUP INVITE TO PERSON ──
+function openSendInvite(){
+  if(!CR||!CRD){toast('Open a room first.');return;}
+  g('send-inv-roomname').textContent=`Invite someone to join: ${CRD.name}`;
+  g('send-inv-q').value='';
+  g('send-inv-err').style.display='none';
+  filterInvitePeople('');
+  openM('m-send-invite');
+}
+function filterInvitePeople(q){
+  const list=g('send-inv-list');if(!list)return;
+  const users=Object.values(allUsers).filter(u=>u.uid!==CU.uid&&(!q||u.alias.toLowerCase().includes(q.toLowerCase())));
+  list.innerHTML='';
+  if(!users.length){list.innerHTML='<div class="req-empty">No users found.</div>';return;}
+  users.forEach(u=>{
+    const card=document.createElement('div');card.className='user-card';
+    const av=document.createElement('div');av.className='av';av.style.cssText='width:32px;height:32px;font-size:12px;flex-shrink:0';
+    if(u.photoURL)av.innerHTML=`<img src="${u.photoURL}" alt="">`;
+    else{av.style.background=u.color;av.textContent=u.alias[0].toUpperCase();}
+    const info=document.createElement('div');info.className='user-card-info';
+    info.innerHTML=`<div class="user-card-name" style="color:${u.color}">${esc(u.alias)}</div><div class="user-card-sub">@${esc(u.alias)}</div>`;
+    const btn=document.createElement('button');btn.className='dm-btn';btn.textContent='Invite 📨';
+    btn.onclick=async e=>{
+      e.stopPropagation();
+      btn.textContent='Sending…';btn.disabled=true;
+      await sendGroupInvite(u);
+      btn.textContent='Sent ✓';
+    };
+    card.appendChild(av);card.appendChild(info);card.appendChild(btn);
+    list.appendChild(card);
+  });
+}
+async function sendGroupInvite(toUser){
+  // Store invite in Firestore under the target user's invites subcollection
+  await fb.setDoc(fb.doc(fb.db,'users',toUser.uid,'invites',CR+'_'+CU.uid),{
+    roomId:CR,
+    roomName:CRD.name,
+    roomIcon:CRD.icon||'💬',
+    fromUid:CU.uid,
+    fromAlias:CP.alias,
+    fromColor:CP.color,
+    status:'pending',
+    ts:fb.serverTimestamp()
+  });
+  toast(`Invite sent to ${toUser.alias}! 📨`);
+}
+
+// ── RECEIVE INVITES (bell) ──
+let unsubInvites=null;
+function subscribeInvites(){
+  if(!CU) return;
+  unsubInvites=fb.onSnapshot(
+    fb.query(fb.collection(fb.db,'users',CU.uid,'invites'),fb.where('status','==','pending')),
+    snap=>{
+      const dot=g('inv-dot');
+      if(dot) dot.classList.toggle('visible',!snap.empty);
+    }
+  );
+}
+async function openMyInvites(){
+  const list=g('my-invites-list');
+  list.innerHTML='<div style="color:var(--mu);text-align:center;padding:16px">Loading…</div>';
+  openM('m-my-invites');
+  const snap=await fb.getDocs(fb.query(fb.collection(fb.db,'users',CU.uid,'invites'),fb.where('status','==','pending')));
+  list.innerHTML='';
+  if(snap.empty){list.innerHTML='<div class="req-empty">No pending invitations.</div>';return;}
+  snap.forEach(d=>{
+    const inv=d.data();
+    const item=document.createElement('div');item.className='inv-notif-item';
+    item.innerHTML=`
+      <div class="inv-notif-head">
+        <span style="font-size:18px">${esc(inv.roomIcon)}</span>
+        <span><b style="color:${esc(inv.fromColor)}">${esc(inv.fromAlias)}</b> invited you to join</span>
+        <span class="inv-notif-room">#${esc(inv.roomName)}</span>
+      </div>
+      <div class="inv-notif-btns">
+        <button class="req-yes" style="flex:1" data-id="${d.id}" data-room="${inv.roomId}">✓ Accept</button>
+        <button class="req-no" data-id="${d.id}">✕ Decline</button>
+      </div>`;
+    item.querySelector('.req-yes').onclick=async e=>{
+      const invId=e.target.dataset.id, roomId=e.target.dataset.room;
+      await fb.setDoc(fb.doc(fb.db,'rooms',roomId,'members',CU.uid),{joinedAt:fb.serverTimestamp()});
+      await fb.updateDoc(fb.doc(fb.db,'users',CU.uid,'invites',invId),{status:'accepted'});
+      item.remove();
+      toast('You joined the room! 🎉');
+      // Open the room
+      const rs=await fb.getDoc(fb.doc(fb.db,'rooms',roomId));
+      if(rs.exists()){closeM('m-my-invites');openRoom({id:roomId,...rs.data()});}
+    };
+    item.querySelector('.req-no').onclick=async e=>{
+      await fb.updateDoc(fb.doc(fb.db,'users',CU.uid,'invites',e.target.dataset.id),{status:'declined'});
+      item.remove();
+      if(!list.children.length)list.innerHTML='<div class="req-empty">No pending invitations.</div>';
+    };
+    list.appendChild(item);
+  });
+}
+
+// ── utils ──
 function g(id){return document.getElementById(id);}
 function v(id){return(g(id)?.value||'').trim();}
 function esc(s){const d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
